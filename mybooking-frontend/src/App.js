@@ -23,21 +23,26 @@ import './App.css';
 // }
 
 import React, { useState, useEffect } from "react";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
 import {
   Container,
   Typography,
-  TextField,
-  Button,
-  List,
-  ListItem,
-  ListItemText,
   Paper,
   Box,
-  Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button
 } from "@mui/material";
 
-function App() {
-  const [bookings, setBookings] = useState([]);
+export default function App() {
+  const [events, setEvents] = useState([]);
+  const [open, setOpen] = useState(false);
   const [user, setUser] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -46,118 +51,90 @@ function App() {
   useEffect(() => {
     fetch("/api/bookings")
       .then((res) => res.json())
-      .then((data) => setBookings(data))
-      .catch((err) => console.error("Error fetching bookings:", err));
+      .then((data) => {
+        const mapped = data.map((b) => ({
+          id: b.id,
+          title: b.user,
+          start: b.startTime,
+          end: b.endTime
+        }));
+        setEvents(mapped);
+      })
+      .catch((err) => console.error("Error loading bookings", err));
   }, []);
 
-  // Handle booking creation
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleDateSelect = (selectInfo) => {
+    setStartTime(selectInfo.startStr);
+    setEndTime(selectInfo.endStr);
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
     const newBooking = { user, startTime, endTime };
 
     const res = await fetch("/api/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newBooking),
+      body: JSON.stringify(newBooking)
     });
 
     if (res.status === 201) {
       const created = await res.json();
-      setBookings([...bookings, created]);
+      setEvents([
+        ...events,
+        {
+          id: created.id,
+          title: created.user,
+          start: created.startTime,
+          end: created.endTime
+        }
+      ]);
+      setOpen(false);
       setUser("");
-      setStartTime("");
-      setEndTime("");
     } else {
-      alert("Booking conflict or error");
+      alert("Conflict or booking error");
     }
   };
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4 }}>
       <Typography variant="h3" gutterBottom>
-        Booking System
+        Booking Calendar
       </Typography>
-
-      {/* Booking List */}
-      <Paper sx={{ mb: 4, p: 2 }}>
-        <Typography variant="h5" gutterBottom>
-          Current Bookings
-        </Typography>
-        <List>
-          {bookings.length > 0 ? (
-            bookings.map((b) => (
-              <ListItem key={b.id} divider>
-                <ListItemText
-                  primary={`${b.user}`}
-                  secondary={`${new Date(
-                    b.startTime
-                  ).toLocaleString()} → ${new Date(
-                    b.endTime
-                  ).toLocaleString()}`}
-                />
-              </ListItem>
-            ))
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              No bookings yet.
-            </Typography>
-          )}
-        </List>
+      <Paper sx={{ p: 2 }}>
+        <FullCalendar
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          initialView="timeGridWeek"
+          selectable={true}
+          events={events}
+          select={handleDateSelect}
+          height="80vh"
+        />
       </Paper>
 
-      {/* Booking Form */}
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Create a Booking
-        </Typography>
-        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                label="User Name"
-                value={user}
-                onChange={(e) => setUser(e.target.value)}
-                fullWidth
-                required
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                label="Start Time"
-                type="datetime-local"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                required
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                label="End Time"
-                type="datetime-local"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                required
-              />
-            </Grid>
-          </Grid>
-          <Button
-            type="submit"
-            variant="contained"
-            sx={{ mt: 3 }}
-            color="primary"
-          >
-            Create Booking
+      {/* Dialog for creating booking */}
+      <Dialog open={open} onClose={() => setOpen(false)}>
+        <DialogTitle>Create Booking</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <TextField
+              label="User Name"
+              fullWidth
+              value={user}
+              onChange={(e) => setUser(e.target.value)}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={handleSubmit} variant="contained" color="primary">
+            Save
           </Button>
-        </Box>
-      </Paper>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
 
-export default App;
 
 
