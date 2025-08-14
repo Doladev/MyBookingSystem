@@ -43,12 +43,13 @@ import {
 export default function App() {
   const [events, setEvents] = useState([]);
   const [open, setOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [user, setUser] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
 
-  // Load bookings from API
-  useEffect(() => {
+  // Load bookings
+  const loadBookings = () => {
     fetch("/api/bookings")
       .then((res) => res.json())
       .then((data) => {
@@ -61,38 +62,76 @@ export default function App() {
         setEvents(mapped);
       })
       .catch((err) => console.error("Error loading bookings", err));
+  };
+
+  useEffect(() => {
+    loadBookings();
   }, []);
 
   const handleDateSelect = (selectInfo) => {
+    setSelectedEvent(null);
     setStartTime(selectInfo.startStr);
     setEndTime(selectInfo.endStr);
+    setUser("");
+    setOpen(true);
+  };
+
+  const handleEventClick = (clickInfo) => {
+    setSelectedEvent(clickInfo.event);
+    setStartTime(clickInfo.event.startStr);
+    setEndTime(clickInfo.event.endStr);
+    setUser(clickInfo.event.title);
     setOpen(true);
   };
 
   const handleSubmit = async () => {
-    const newBooking = { user, startTime, endTime };
+    const bookingData = { user, startTime, endTime };
 
-    const res = await fetch("/api/bookings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newBooking)
-    });
+    if (selectedEvent) {
+      // UPDATE booking
+      const res = await fetch(`/api/bookings/${selectedEvent.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookingData)
+      });
 
-    if (res.status === 201) {
-      const created = await res.json();
-      setEvents([
-        ...events,
-        {
-          id: created.id,
-          title: created.user,
-          start: created.startTime,
-          end: created.endTime
-        }
-      ]);
-      setOpen(false);
-      setUser("");
+      if (res.ok) {
+        loadBookings();
+        setOpen(false);
+      } else {
+        alert("Update failed");
+      }
     } else {
-      alert("Conflict or booking error");
+      // CREATE booking
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookingData)
+      });
+
+      if (res.status === 201) {
+        loadBookings();
+        setOpen(false);
+      } else {
+        alert("Conflict or booking error");
+      }
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedEvent) return;
+
+    if (window.confirm("Delete this booking?")) {
+      const res = await fetch(`/api/bookings/${selectedEvent.id}`, {
+        method: "DELETE"
+      });
+
+      if (res.ok) {
+        loadBookings();
+        setOpen(false);
+      } else {
+        alert("Delete failed");
+      }
     }
   };
 
@@ -106,15 +145,19 @@ export default function App() {
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
           selectable={true}
+          editable={true}
           events={events}
           select={handleDateSelect}
+          eventClick={(info) => handleEventClick(info)}
           height="80vh"
         />
       </Paper>
 
-      {/* Dialog for creating booking */}
+      {/* Dialog for create/update */}
       <Dialog open={open} onClose={() => setOpen(false)}>
-        <DialogTitle>Create Booking</DialogTitle>
+        <DialogTitle>
+          {selectedEvent ? "Edit Booking" : "Create Booking"}
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
             <TextField
@@ -126,6 +169,11 @@ export default function App() {
           </Box>
         </DialogContent>
         <DialogActions>
+          {selectedEvent && (
+            <Button onClick={handleDelete} color="error">
+              Delete
+            </Button>
+          )}
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={handleSubmit} variant="contained" color="primary">
             Save
@@ -135,6 +183,7 @@ export default function App() {
     </Container>
   );
 }
+
 
 
 
