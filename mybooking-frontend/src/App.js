@@ -23,6 +23,18 @@ import './App.css';
 // }
 
 import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Typography,
+  TextField,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Paper,
+  Box,
+  Grid,
+} from "@mui/material";
 
 function App() {
   const [bookings, setBookings] = useState([]);
@@ -30,7 +42,7 @@ function App() {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
 
-  // Load bookings on page load
+  // Load bookings from API
   useEffect(() => {
     fetch("/api/bookings")
       .then((res) => res.json())
@@ -56,48 +68,96 @@ function App() {
       setStartTime("");
       setEndTime("");
     } else {
-      alert("Failed to create booking (maybe overlap?)");
+      alert("Booking conflict or error");
     }
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Booking Lists</h1>
+    <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Typography variant="h3" gutterBottom>
+        Booking System
+      </Typography>
 
-      <ul>
-        {bookings.map((b) => (
-          <li key={b.id}>
-            {b.user} - {new Date(b.startTime).toLocaleString()} to{" "}
-            {new Date(b.endTime).toLocaleString()}
-          </li>
-        ))}
-      </ul>
+      {/* Booking List */}
+      <Paper sx={{ mb: 4, p: 2 }}>
+        <Typography variant="h5" gutterBottom>
+          Current Bookings
+        </Typography>
+        <List>
+          {bookings.length > 0 ? (
+            bookings.map((b) => (
+              <ListItem key={b.id} divider>
+                <ListItemText
+                  primary={`${b.user}`}
+                  secondary={`${new Date(
+                    b.startTime
+                  ).toLocaleString()} → ${new Date(
+                    b.endTime
+                  ).toLocaleString()}`}
+                />
+              </ListItem>
+            ))
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No bookings yet.
+            </Typography>
+          )}
+        </List>
+      </Paper>
 
-      <h2>Create New Booking</h2>
-      <form onSubmit={handleSubmit}>
-        <input
-          placeholder="User"
-          value={user}
-          onChange={(e) => setUser(e.target.value)}
-          required
-        />
-        <input
-          type="datetime-local"
-          value={startTime}
-          onChange={(e) => setStartTime(e.target.value)}
-          required
-        />
-        <input
-          type="datetime-local"
-          value={endTime}
-          onChange={(e) => setEndTime(e.target.value)}
-          required
-        />
-        <button type="submit">Create</button>
-      </form>
-    </div>
+      {/* Booking Form */}
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          Create a Booking
+        </Typography>
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <TextField
+                label="User Name"
+                value={user}
+                onChange={(e) => setUser(e.target.value)}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Start Time"
+                type="datetime-local"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                required
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="End Time"
+                type="datetime-local"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                required
+              />
+            </Grid>
+          </Grid>
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{ mt: 3 }}
+            color="primary"
+          >
+            Create Booking
+          </Button>
+        </Box>
+      </Paper>
+    </Container>
   );
 }
 
 export default App;
+
 
