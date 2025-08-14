@@ -6,35 +6,66 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 using MyBooking.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using MyBooking.Repositories;
 
 namespace MyBooking.Tests;
 
-public class BookingApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class BookingApiIntegrationTests : IClassFixture<MyBookingFactory>
 {
-    private readonly HttpClient _client;
-    public BookingApiIntegrationTests(WebApplicationFactory<Program> factory)
+   private readonly HttpClient _client;
+    private readonly MyBookingFactory _factory;
+
+    public BookingApiIntegrationTests(MyBookingFactory factory)
     {
-        // _client = factory.CreateClient();
+        _factory = factory;
+        _client = _factory.CreateClient();
 
-         var customizedFactory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                // Remove the existing IBookingService registration
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(IBookingService));
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
-
-                // Register a *new instance per scope* (fresh list for each request)
-                services.AddScoped<IBookingService, BookingService>();
-            });
-        });
-
-        _client = customizedFactory.CreateClient();
+        // Clear DB for clean state
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<BookingDbContext>();
+        context.Bookings.RemoveRange(context.Bookings);
+        context.SaveChanges();
     }
+
+    // public BookingApiIntegrationTests(WebApplicationFactory<Program> factory)
+    // {
+    //     // _client = factory.CreateClient();
+
+    //     //  var customizedFactory = factory.WithWebHostBuilder(builder =>
+    //     // {
+    //     //     builder.ConfigureServices(services =>
+    //     //     {
+    //     //         // Remove the existing IBookingService registration
+    //     //         var descriptor = services.SingleOrDefault(
+    //     //             d => d.ServiceType == typeof(IBookingService));
+    //     //         if (descriptor != null)
+    //     //         {
+    //     //             services.Remove(descriptor);
+    //     //         }
+
+    //     //         // Register a *new instance per scope* (fresh list for each request)
+    //     //         services.AddScoped<IBookingService, BookingService>();
+    //     //     });
+    //     // });
+
+    //     // _client = customizedFactory.CreateClient();
+
+    //     _client = factory.WithWebHostBuilder(builder =>
+    //     {
+    //         builder.ConfigureServices(services =>
+    //         {
+    //             // Remove the old DbContext
+    //             var descriptor = services.SingleOrDefault(
+    //                 d => d.ServiceType == typeof(DbContextOptions<BookingDbContext>));
+    //             if (descriptor != null) services.Remove(descriptor);
+
+    //             // Add a fresh in-memory DB for each test run
+    //             services.AddDbContext<BookingDbContext>(options =>
+    //                 options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+    //         });
+    //     }).CreateClient();
+    // }
 
     [Theory]
     [InlineData("Tenzin")]
@@ -48,7 +79,7 @@ public class BookingApiIntegrationTests : IClassFixture<WebApplicationFactory<Pr
         //Assert
         Assert.NotNull(created);
         Assert.Equal(userName, created.User);
-        Assert.NotEqual(0, created.Id);
+        Assert.NotEqual(Guid.Empty, created.Id);
     }
 
     [Theory]

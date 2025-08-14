@@ -32,12 +32,12 @@ public class BookingServiceUnitTests
     public async Task UpdateAsync_ReturnsFalse_WhenMissing()
     {
         //Arrange
-        _repo.Setup(r => r.GetAsync(42, default)).ReturnsAsync((Booking?)null);
+        _repo.Setup(r => r.GetAsync(Guid.NewGuid(), default)).ReturnsAsync((Booking?)null);
         var svc = new BookingService(_repo.Object);
         var dto = new BookingUpdateDto { User = "Y", StartTime = DateTime.UtcNow, EndTime = DateTime.UtcNow.AddHours(1) };
 
         //Act
-        var ok = await svc.UpdateAsync(42, dto);
+        var ok = await svc.UpdateAsync(Guid.NewGuid(), dto);
 
         //Assert
         Assert.False(ok);
