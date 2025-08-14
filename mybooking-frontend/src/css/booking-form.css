@@ -1,0 +1,28 @@
+/* booking-form.css */
+.overlay {
+  background: rgba(0, 0, 0, 0.4);
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.form {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 350px;
+  box-shadow: 0 2px 15px rgba(0,0,0,0.3);
+}
+
+.form h3 {
+  margin-top: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
