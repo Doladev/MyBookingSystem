@@ -1,81 +1,73 @@
 import React, { useState, useEffect } from "react";
-import "../css/booking-form.css";
 
-export default function BookingForm({ booking, onSave, onCancel, onDelete }) {
-    const [formData, setFormData] = useState(booking);
+export default function BookingForm({ initialData, onSave, onCancel, onDelete }) {
+  const [booking, setBooking] = useState(initialData);
 
-    useEffect(() => {
-        setFormData(booking);
-    }, [booking]);
+  useEffect(() => {
+    setBooking(initialData);
+  }, [initialData]);
 
-    const handleChange = (e) => {
-        setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    };
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setBooking({ ...booking, [name]: value });
+  };
 
-    return (
-        <div
-            className="overlay"
-            onClick={(e) => {
-                if (e.target.classList.contains("overlay")) {
-                    onCancel();
-                }
-            }}
-        >
-            <div className="form" onClick={(e) => e.stopPropagation()}>
-                <div style={styles.overlay}>
-                    <div style={styles.form}>
-                        <h3>{booking.id ? "Edit Booking" : "Create Booking"}</h3>
-                        <label>User Name:</label>
-                        <input
-                            name="user"
-                            value={formData.user}
-                            onChange={handleChange}
-                            placeholder="Enter name"
-                        />
-                        <label>Start Time:</label>
-                        <input
-                            name="startTime"
-                            type="datetime-local"
-                            value={formData.startTime || ""}
-                            onChange={handleChange}
-                        />
-                        <label>End Time:</label>
-                        <input
-                            name="endTime"
-                            type="datetime-local"
-                            value={formData.endTime}
-                            onChange={handleChange}
-                        />
-                        <div style={styles.actions}>
-                            <button onClick={() => onSave(formData)}>Save</button>
-                            {booking.id && <button onClick={() => onDelete(booking.id)}>Delete</button>}
-                            <button onClick={onCancel}>Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(booking);
+  };
+
+  const handleDelete = () => {
+    if (booking.id) {
+      onDelete(booking.id);
+      onCancel(); // close the modal after delete
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label>User:</label>
+        <input
+          type="text"
+          name="user"
+          value={booking.user}
+          onChange={handleChange}
+          required
+        />
+      </div>
+
+      <div>
+        <label>Start Time:</label>
+        <input
+          type="datetime-local"
+          name="startTime"
+          value={booking.startTime}
+          onChange={handleChange}
+          required
+        />
+      </div>
+
+      <div>
+        <label>End Time:</label>
+        <input
+          type="datetime-local"
+          name="endTime"
+          value={booking.endTime}
+          onChange={handleChange}
+          required
+        />
+      </div>
+
+      <div style={{ marginTop: "1rem", display: "flex", justifyContent: "space-between" }}>
+        <button type="submit">Save</button>
+        <button type="button" onClick={onCancel}>Cancel</button>
+        {booking.id && (
+          <button type="button" onClick={handleDelete} style={{ color: "red" }}>
+            Delete
+          </button>
+        )}
+      </div>
+    </form>
+  );
 }
-
-const styles = {
-    overlay: {
-        background: "rgba(0,0,0,0.4)",
-        position: "fixed",
-        inset: 0,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    form: {
-        background: "#fff",
-        padding: "20px",
-        borderRadius: "8px",
-        width: "300px",
-    },
-    actions: {
-        marginTop: "10px",
-        display: "flex",
-        justifyContent: "space-between",
-    },
-};
